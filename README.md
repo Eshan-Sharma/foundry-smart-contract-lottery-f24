@@ -14,6 +14,46 @@ This code is to create a proveable random smart contract lottery.
    1. Chainlink VRF -> Randomness
    2. Chainlink Automation -> Time based trigger
 
+## Solidity Style Guide
+
+Contract elements should be laid out in the following order:
+
+- Pragma statements
+- Import statements
+- Events
+- Errors
+- Interfaces
+- Libraries
+- Contracts
+
+Inside each contract, library or interface, use the following order:
+
+- Type declarations
+- State variables
+- Events
+- Errors
+- Modifiers
+- Functions
+
+Order of functions
+
+- constructor
+- receive function (if exists)
+- fallback function (if exists)
+- external
+- public
+- internal
+- private
+- Within a grouping, place the view and pure functions last.
+
+The modifier order for a function should be:
+
+- Visibility
+- Mutability
+- Virtual
+- Override
+- Custom modifiers
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
