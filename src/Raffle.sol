@@ -14,6 +14,14 @@ import {VRFConsumerBaseV2} from "lib/chainlink-brownie-contracts/contracts/src/v
 contract Raffle is VRFConsumerBaseV2 {
     //Custom Errors
     error Raffle__NotEnoughETHSent();
+    error Raffle__TransactionFailed();
+    error Raffle__RaffleNotOpen();
+
+    // Type declarations
+    enum RaffleState {
+        Open,
+        Calculating
+    }
 
     // State Variables
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
@@ -23,13 +31,16 @@ contract Raffle is VRFConsumerBaseV2 {
     ///@dev Duration of the lottery in seconds
     uint256 private immutable i_interval;
     uint256 private s_lastTimeStamp;
+    address private s_recentWinner;
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
     bytes32 private immutable i_gasLane; //keyHash
     uint64 private immutable i_subscriptionId;
     uint32 private immutable i_callbackGasLimit;
+    RaffleState private s_raffleState;
 
     // Events
     event EnteredRaffle(address indexedPlayer);
+    event WinnerPicked(address winner);
 
     constructor(
         uint256 _entranceFee,
@@ -46,9 +57,13 @@ contract Raffle is VRFConsumerBaseV2 {
         i_gasLane = _gasLane;
         i_subscriptionId = _subscriptionId;
         i_callbackGasLimit = _callbackGasLimit;
+        s_raffleState = RaffleState.Open;
     }
 
     function enterRaffle() external payable {
+        if (s_raffleState != RaffleState.Open) {
+            revert Raffle__RaffleNotOpen();
+        }
         if (msg.value <= i_entranceFee) {
             revert Raffle__NotEnoughETHSent();
         }
@@ -63,6 +78,7 @@ contract Raffle is VRFConsumerBaseV2 {
         if ((block.timestamp - s_lastTimeStamp) < i_interval) {
             revert();
         }
+        s_raffleState = RaffleState.Calculating;
         // Here means enough time has passed
         // Get a random number - Chainlink is a 2 step process
         //      1. Request the Random Number Generator
@@ -72,12 +88,22 @@ contract Raffle is VRFConsumerBaseV2 {
         //      2. Get the random number
     }
 
-    function fulfillRandomWords(uint256 _requestId, uint256[] memory randomWords) internal override {}
+    function fulfillRandomWords(uint256 _requestId, uint256[] memory randomWords) internal override {
+        uint256 indexOfWinner = randomWords[0] % s_players.length;
+        address payable winner = s_players[indexOfWinner];
+        s_recentWinner = winner;
+        s_raffleState = RaffleState.Open;
+        s_players = new address payable[](0); // Reset the players
+        s_lastTimeStamp = block.timestamp;
+        (bool success,) = winner.call{value: address(this).balance}("");
+        if (!success) {
+            revert Raffle__TransactionFailed();
+        }
+        emit WinnerPicked(winner);
+    }
 
     /**
      * Getter functions
      */
-    function getEntranceFee() external view returns (uint256) {
-        return i_entranceFee;
-    }
+    function getEntranceFee() external view returns (uint256) {}
 }
