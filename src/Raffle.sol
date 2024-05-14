@@ -88,18 +88,22 @@ contract Raffle is VRFConsumerBaseV2 {
         //      2. Get the random number
     }
 
+    // CEI design patter:Checks, Effects, Interactions
     function fulfillRandomWords(uint256 _requestId, uint256[] memory randomWords) internal override {
+        // Checks
+        // Effects (own contract)
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address payable winner = s_players[indexOfWinner];
         s_recentWinner = winner;
         s_raffleState = RaffleState.Open;
         s_players = new address payable[](0); // Reset the players
         s_lastTimeStamp = block.timestamp;
+        emit WinnerPicked(winner);
+        // Interactions (other contract)
         (bool success,) = winner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffle__TransactionFailed();
         }
-        emit WinnerPicked(winner);
     }
 
     /**
