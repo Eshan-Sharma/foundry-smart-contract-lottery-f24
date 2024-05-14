@@ -16,6 +16,7 @@ contract Raffle is VRFConsumerBaseV2 {
     error Raffle__NotEnoughETHSent();
     error Raffle__TransactionFailed();
     error Raffle__RaffleNotOpen();
+    error Raffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, RaffleState raffleState);
 
     // Type declarations
     enum RaffleState {
@@ -71,12 +72,35 @@ contract Raffle is VRFConsumerBaseV2 {
         emit EnteredRaffle(msg.sender);
     }
 
+    // When is the winner supposed to be picked?
+    /**
+     * @dev This is the function that the chainlink automation nodes call to perform the upkeep.
+     * The following should be true for this to return true:
+     * 1. The time interval has passed between raffle runs
+     * 2. Raffle is in open state
+     * 3. The contract has ETH (aka players)
+     * 4. (Implicit)  The subscription is funded with LINK
+     */
+    function checkUpkeep(bytes memory /*checkData*/ )
+        public
+        view
+        returns (bool upkeepNeeded, bytes memory /*performData*/ )
+    {
+        bool timeHasPassed = ((block.timestamp - s_lastTimeStamp) >= i_interval);
+        bool isOpen = (s_raffleState == RaffleState.Open);
+        bool hasPlayers = (s_players.length > 0);
+        bool hasBalance = (address(this).balance > 0);
+        upkeepNeeded = (timeHasPassed && isOpen && hasPlayers && hasBalance);
+        return (upkeepNeeded, "0x0");
+    }
+
     // 1. Get a random number
     // 2. Use the random number to pick a players
     // 3. Pick a winner after a set period of time
-    function pickWinner() external {
-        if ((block.timestamp - s_lastTimeStamp) < i_interval) {
-            revert();
+    function performUpkeep(bytes calldata /*performData*/ ) external {
+        (bool upKeepNeded,) = checkUpkeep("");
+        if (!upKeepNeded) {
+            revert Raffle__UpkeepNotNeeded(address(this).balance, s_players.length, RaffleState(s_raffleState));
         }
         s_raffleState = RaffleState.Calculating;
         // Here means enough time has passed
