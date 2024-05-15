@@ -24,9 +24,26 @@ contract RaffleTest is Test {
         (raffle, helperConfig) = deployRaffle.run();
         (entranceFee, interval, vrfCoordinator, gasLane, subscriptionId, callbackGasLimit) =
             helperConfig.activeNetworkConfig();
+        vm.deal(PLAYER, STARTING_USER_BALANCE);
     }
 
     function testRaffleInitiatizesInOpenState() public view {
         assert(raffle.getRaffleState() == Raffle.RaffleState.Open);
+    }
+
+    //Enter raffle
+    function testRaffleRevertsWhenYouDontPayEnough() public {
+        // Arrange
+        vm.prank(PLAYER);
+        // Act / Assert
+        vm.expectRevert(Raffle.Raffle__NotEnoughETHSent.selector);
+        raffle.enterRaffle();
+    }
+
+    function testRaffleRecordsPlayerWhenTheyEnter() public {
+        vm.prank(PLAYER);
+        raffle.enterRaffle{value: 1 ether}();
+        address playerRecorded = raffle.getPlayer(0);
+        assert(playerRecorded == PLAYER);
     }
 }
