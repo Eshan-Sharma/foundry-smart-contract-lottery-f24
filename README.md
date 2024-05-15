@@ -54,6 +54,14 @@ The modifier order for a function should be:
 - Override
 - Custom modifiers
 
+## Tests!
+
+1. Write some deploy scripts
+2. Write some Tests
+   1. Work on local chain
+   2. Work on Forked testnet
+   3. Work on Forked mainnet
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
