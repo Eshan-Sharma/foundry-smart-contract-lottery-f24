@@ -48,12 +48,12 @@ contract HelperConfig is Script {
         return NetworkConfig({
             entranceFee: 0.01 ether,
             interval: 30,
-            vrfCoordinator: 0xD7f86b4b8Cae7D942340FF628F82735b7a20893a,
+            vrfCoordinator: 0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625,
             gasLane: 0x8077df514608a09f83e4e8d300645594e5d7234665448ba83f51a50f842bd3d9,
             subscriptionId: 0,
             callbackGasLimit: 500000,
             link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
-            deployerKey: vm.envUint("PRIVATE_KEY")
+            deployerKey: vm.envUint("SEPOLIA_PRIVATE_KEY")
         });
     }
 

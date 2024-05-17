@@ -4,29 +4,45 @@ pragma solidity ^0.8.18;
 import {Script, console} from "lib/forge-std/src/Script.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
 import {VRFCoordinatorV2Mock} from "lib/chainlink-brownie-contracts/contracts/src/v0.8/mocks/VRFCoordinatorV2Mock.sol";
+import {VRFCoordinatorV2} from "lib/chainlink-brownie-contracts/contracts/src/v0.8/VRFCoordinatorV2.sol";
 import {LinkToken} from "../test/mocks/LinkToken.sol";
 import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 import {Raffle} from "../src/Raffle.sol";
 
-contract CreateSubcription is Script {
+contract CreateSubscription is Script {
+    function run() external returns (uint64, address) {
+        return createSubscriptionUsingConfig();
+    }
+
     function createSubscriptionUsingConfig() public returns (uint64, address) {
         HelperConfig helperConfig = new HelperConfig();
         (,, address vrfCoordinator,,,,, uint256 deployerKey) = helperConfig.activeNetworkConfig();
         return createSubscription(vrfCoordinator, deployerKey);
     }
 
-    function createSubscription(address _vrfCoordinator, uint256 deployerKey) public returns (uint64, address) {
-        console.log("Creating subscription on ChainId:", block.chainid);
-        vm.startBroadcast(deployerKey);
-        uint64 subId = VRFCoordinatorV2Mock(_vrfCoordinator).createSubscription();
-        vm.stopBroadcast();
-        console.log("Your sub id is:", subId);
-        console.log("Please update your config file with your sub id");
-        return (subId, _vrfCoordinator);
-    }
+    function createSubscription(address _vrfCoordinatorV2Address, uint256 _deployerKey)
+        public
+        returns (uint64, address)
+    {
+        if (block.chainid == 31337) {
+            console.log("Creating subscription on ChainId:", block.chainid);
 
-    function run() external returns (uint64, address) {
-        return createSubscriptionUsingConfig();
+            vm.startBroadcast(_deployerKey);
+            uint64 subId = VRFCoordinatorV2Mock(_vrfCoordinatorV2Address).createSubscription();
+            vm.stopBroadcast();
+            console.log("Your sub id is:", subId);
+            console.log("Please update your config file with your sub id");
+            return (subId, _vrfCoordinatorV2Address);
+        } else {
+            console.log("DeployerKey:", _deployerKey);
+            vm.startBroadcast(_deployerKey);
+            console.log("Script is about to create a subscription on chain", block.chainid);
+            console.log("Using vrfCoordinator: ", _vrfCoordinatorV2Address);
+            uint64 subId = VRFCoordinatorV2(_vrfCoordinatorV2Address).createSubscription();
+            console.log("Subscription have been successfully created and your id is", subId);
+            vm.stopBroadcast();
+            return (subId, _vrfCoordinatorV2Address);
+        }
     }
 }
 
@@ -46,7 +62,7 @@ contract FundSubscription is Script {
             uint256 deployerKey
         ) = helperConfig.activeNetworkConfig();
         if (subscriptionId == 0) {
-            CreateSubcription createSub = new CreateSubcription();
+            CreateSubscription createSub = new CreateSubscription();
             (uint64 updatedSubId, address updatedVRFv2) = createSub.run();
             subscriptionId = updatedSubId;
             vrfCoordinator = updatedVRFv2;
